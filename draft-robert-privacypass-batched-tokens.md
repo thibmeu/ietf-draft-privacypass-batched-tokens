@@ -67,7 +67,7 @@ to improve the situation by
 # Client-to-Issuer Request {#client-to-issuer-request}
 
 Except where specified otherwise, the client follows the same protocol as described in
-{{!ISSUANCE=I-D.ietf-privacypass-protocol}}.
+{{ISSUANCE, Section 5.1}}.
 
 The Client first creates a context as follows:
 
@@ -134,7 +134,7 @@ flow by computing a blinded response as follows:
 # Issuer-to-Client Response {#issuer-to-client-response}
 
 Except where specified otherwise, the client follows the same protocol as described in
-{{!ISSUANCE=I-D.ietf-privacypass-protocol}}.
+{{ISSUANCE, Section 5.2}}.
 
 ~~~
 server_context = SetupVOPRFServer(0x0001, skI, pkI)
@@ -262,6 +262,13 @@ struct {
 ~~~
 
 If the FinalizeBatch function fails, the Client aborts the protocol.
+
+# Security considerations {#security-considerations}
+
+Implementors SHOULD be aware of the security considerations described in {{OPRF,
+Section 6.2.3}} and implement mitigation mechanisms. Application can mitigate
+this issue by limiting the number of clients and limiting the number of token
+requests per client per key.
 
 # IANA considerations
 
