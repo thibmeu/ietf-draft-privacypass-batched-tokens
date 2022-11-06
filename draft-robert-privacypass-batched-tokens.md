@@ -14,7 +14,7 @@ author:
  -
     ins: R. Robert
     name: Raphael Robert
-    org:
+    org: Phoenix R&D
     email: ietf@raphaelrobert.com
  -
     ins: C. A. Wood
