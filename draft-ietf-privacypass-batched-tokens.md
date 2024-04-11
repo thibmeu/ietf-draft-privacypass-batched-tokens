@@ -26,7 +26,7 @@ author:
 
 This document specifies a variant of the Privacy Pass issuance protocol that
 allows for batched issuance of tokens. This allows clients to request more than
-one token at a time and for issuers to isse more than one token at a time.
+one token at a time and for issuers to issue more than one token at a time.
 
 --- middle
 
@@ -35,7 +35,7 @@ one token at a time and for issuers to isse more than one token at a time.
 This document specifies a variant of the Privacy Pass issuance protocol (as
 defined in {{!ARCH=I-D.ietf-privacypass-architecture}}) that allows for batched
 issuance of tokens. This allows clients to request more than one token at a time
-and for issuers to isse more than one token at a time.
+and for issuers to issue more than one token at a time.
 
 The base Privacy Pass issuance protocol
 {{!ISSUANCE=I-D.ietf-privacypass-protocol}} defines stateless anonymous tokens,
