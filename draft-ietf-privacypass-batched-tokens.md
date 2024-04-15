@@ -346,7 +346,7 @@ following entry:
 * Batched Issuance: Y
 * Nk: 32
 * Nid: 32
-* Reference: {{private-flow}}
+* Reference: {{ISSUANCE, Section 5}}
 * Notes: None
 
 ## Media Types
