@@ -457,7 +457,7 @@ Encoding considerations:
 
 Security considerations:
 
-: see {{security}}
+: see {{security-considerations}}
 
 Interoperability considerations:
 
