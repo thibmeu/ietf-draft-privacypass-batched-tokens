@@ -57,7 +57,7 @@ works with token types that support batching.
 
 This batched issuance protocol registers one new token type ({{iana-token-type}}),
 to be used with the PrivateToken HTTP authentication scheme defined in
-{{!AUTHSCHEME=I-D.ietf-privacypass-auth-scheme}}. It also
+{{!AUTHSCHEME=I-D.ietf-privacypass-auth-scheme}}.
 
 # Motivation
 
