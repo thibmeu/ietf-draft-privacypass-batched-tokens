@@ -343,7 +343,6 @@ following entry:
 * Publicly Verifiable: N
 * Public Metadata: N
 * Private Metadata: N
-* Batched Issuance: Y
 * Nk: 32
 * Nid: 32
 * Reference: {{ISSUANCE, Section 5}}
