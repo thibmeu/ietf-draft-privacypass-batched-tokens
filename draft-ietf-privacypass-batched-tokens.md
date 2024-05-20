@@ -44,13 +44,18 @@ multiple instances of the issuance protocol in parallel, e.g., over a
 multiplexed transport such as HTTP/3 {{?HTTP3=RFC9114}}, the cost of doing so
 scales linearly with the number of instances.
 
-This variant builds upon the privately verifiable issuance protocol that uses
-VOPRF {{!OPRF=I-D.irtf-cfrg-voprf}}, and allows for batched issuance of tokens.
-This allows clients to request more than one token at a time and for issuers to
-issue more than one token at a time. In effect, batched issuance performance
-scales better than linearly.
+This variant of the issuance protocol builds upon the privately verifiable
+issuance protocol in {{ISSUANCE}} that uses VOPRF {{!OPRF=I-D.irtf-cfrg-voprf}},
+and allows for batched issuance of tokens. This allows clients to request more
+than one token at a time and for issuers to issue more than one token at a
+time. In effect, batched issuance performance scales better than linearly.
 
-This issuance protocol registers the batched token type ({{iana-token-type}}),
+The token type for this issuance protocol is the same as in the non-batched
+issuance protocol. This is because the underlying cryptographic protocol is
+the same. As a result, the batched issuance protocol in this document only
+works with token types that support batching.
+
+This batched issuance protocol registers one new token type ({{iana-token-type}}),
 to be used with the PrivateToken HTTP authentication scheme defined in
 {{!AUTHSCHEME=I-D.ietf-privacypass-auth-scheme}}.
 
@@ -101,7 +106,7 @@ blind_i, blinded_element_i = client_context.Blind(token_input)
 The above is repeated for each token to be requested. Importantly, a fresh nonce
 MUST be sampled each time.
 
-The Client then creates a TokenRequest structured as follows:
+The Client then creates a BatchTokenRequest structured as follows:
 
 ~~~tls
 struct {
@@ -112,7 +117,7 @@ struct {
    uint16_t token_type;
    uint8_t truncated_token_key_id;
    BlindedElement blinded_elements<0..2^16-1>;
-} TokenRequest;
+} BatchTokenRequest;
 ~~~
 
 The structure fields are defined as follows:
@@ -127,28 +132,43 @@ The structure fields are defined as follows:
   blinded_element_i is the i-th output sequence of `Blind` invocations above. Ne
   is as defined in {{OPRF, Section 4}}.
 
-Upon receipt of the request, the Issuer validates the following conditions:
+The Client then generates an HTTP POST request to send to the Issuer Request
+URL, with the BatchTokenRequest as the content. The media type for this request
+is "application/private-token-batch-request". An example request for the Issuer
+Request URL "https://issuer.example.net/request" is shown below.
 
-- The TokenRequest contains a supported token_type equal to one of the batched
-  token types defined in this document.
-- The TokenRequest.truncated_token_key_id corresponds to a key ID of a Public
-  Key owned by the issuer.
-- Nr, as determined based on the size of TokenRequest.blinded_elements, is
-  less than or equal to the number of tokens that the issuer can issue in a
-  single batch.
+~~~
+POST /request HTTP/1.1
+Host: issuer.example.net
+Accept: application/private-token-batch-response
+Content-Type: application/private-token-batch-request
+Content-Length: <Length of BatchTokenRequest>
 
-If any of these conditions is not met, the Issuer MUST return an HTTP 400 error
-to the client.
+<Bytes containing the BatchTokenRequest>
+~~~
 
 # Issuer-to-Client Response {#issuer-to-client-response}
 
 Except where specified otherwise, the client follows the same protocol as
 described in {{ISSUANCE, Section 5.2}}.
 
-Upon receipt of a TokenRequest, the Issuer tries to deseralize the i-th element
-of TokenRequest.blinded_elements using DeserializeElement from {{Section 2.1 of
+Upon receipt of the request, the Issuer validates the following conditions:
+
+- The BatchTokenRequest contains a supported token_type equal to one of the batched
+  token types defined in this document.
+- The BatchTokenRequest.truncated_token_key_id corresponds to a key ID of a Public
+  Key owned by the issuer.
+- Nr, as determined based on the size of BatchTokenRequest.blinded_elements, is
+  less than or equal to the number of tokens that the issuer can issue in a
+  single batch.
+
+If any of these conditions is not met, the Issuer MUST return an HTTP 400 error
+to the client.
+
+The Issuer then tries to deseralize the i-th element
+of BatchTokenRequest.blinded_elements using DeserializeElement from {{Section 2.1 of
 OPRF}}, yielding `blinded_element_i` of type `Element`. If this fails for any of
-the TokenRequest.blinded_elements values, the Issuer MUST return an HTTP 400
+the BatchTokenRequest.blinded_elements values, the Issuer MUST return an HTTP 400
 error to the client. Otherwise, if the Issuer is willing to produce a token to
 the Client, the issuer forms a list of `Element` values, denoted
 `blinded_elements`, and computes a blinded response as follows:
@@ -192,7 +212,7 @@ def BlindEvaluateBatch(blindedElements):
   return evaluatedElements, proof
 ~~~
 
-The Issuer then creates a TokenResponse structured as follows:
+The Issuer then creates a BatchTokenResponse structured as follows:
 
 ~~~tls
 struct {
@@ -202,7 +222,7 @@ struct {
 struct {
    EvaluatedElement evaluated_elements<0..2^16-1>;
    uint8_t evaluated_proof[Ns + Ns];
-} TokenResponse;
+} BatchTokenResponse;
 ~~~
 
 The structure fields are defined as follows:
@@ -214,6 +234,18 @@ The structure fields are defined as follows:
 - "evaluated_proof" is the (Ns+Ns)-octet serialized proof, which is a pair of
   Scalar values, computed as `concat(SerializeScalar(proof[0]),
   SerializeScalar(proof[1]))`, where Ns is as defined in {{OPRF, Section 4}}.
+
+The Issuer generates an HTTP response with status code 200 whose content
+consists of TokenResponse, with the content type set as
+"application/private-token-batch-response".
+
+~~~
+HTTP/1.1 200 OK
+Content-Type: application/private-token-batch-response
+Content-Length: <Length of BatchTokenResponse>
+
+<Bytes containing the BatchTokenResponse>
+~~~
 
 # Finalization {#finalization}
 
@@ -269,7 +301,7 @@ def FinalizeBatch(input, blind, evaluatedElements, blindedElements, proof):
   return output
 ~~~
 
-If this succeeds, the Client then constructs `Nr` Token values as follows, where
+If this succeeds, the Client then constructs `Nr` Token values, where
 `authenticator` is the i-th Nh-byte length slice of `authenticator_values` that
 corresponds to `nonce`, the i-th nonce that was sampled in
 {{client-to-issuer-request}}:
@@ -284,7 +316,8 @@ struct {
 } Token;
 ~~~
 
-If the FinalizeBatch function fails, the Client aborts the protocol.
+If the FinalizeBatch function fails, the Client aborts the protocol. Token
+verification works exactly as specified in {{ISSUANCE}}.
 
 # Security considerations {#security-considerations}
 
@@ -295,13 +328,179 @@ requests per client per key.
 
 # IANA considerations
 
+This section contains IANA codepoint allocation requests.
+
 ## Token Type {#iana-token-type}
 
 This document updates the "Token Type" Registry ({{AUTHSCHEME}}) with the
-following value:
+following entry:
 
-| Value  | Name                                        | Publicly Verifiable | Public Metadata | Private Metadata | Nk  | Reference        |
-|:-------|:--------------------------------------------|:--------------------|:----------------|:-----------------|:----|:-----------------|
-| 0xF901 | Batched Token VOPRF (P-384, SHA-384) | N                   | N               | N                | 32  | This document    |
-| 0xF91A | Batched Token VOPRF (ristretto255, SHA-512) | N                   | N               | N                | 32  | This document    |
-{: #aeadid-values title="Token Types"}
+* Value: 0xF91A
+* Name: VOPRF (ristretto255, SHA-512)
+* Token Structure: As defined in {{Section 2.2 of AUTHSCHEME}}
+* Token Key Encoding: Serialized using SerializeElement from {{Section 2.1 of OPRF}}
+* TokenChallenge Structure: As defined in {{Section 2.1 of AUTHSCHEME}}
+* Publicly Verifiable: N
+* Public Metadata: N
+* Private Metadata: N
+* Nk: 32
+* Nid: 32
+* Reference: {{ISSUANCE, Section 5}}
+* Notes: None
+
+## Media Types
+
+The following entries should be added to the IANA "media types"
+registry:
+
+- "application/private-token-batch-request"
+- "application/private-token-batch-response"
+
+The templates for these entries are listed below and the
+reference should be this RFC.
+
+### "application/private-token-batch-request" media type
+
+Type name:
+
+: application
+
+Subtype name:
+
+: private-token-request
+
+Required parameters:
+
+: N/A
+
+Optional parameters:
+
+: N/A
+
+Encoding considerations:
+
+: "binary"
+
+Security considerations:
+
+: see {{security-considerations}}
+
+Interoperability considerations:
+
+: N/A
+
+Published specification:
+
+: this specification
+
+Applications that use this media type:
+
+: Applications that want to issue or facilitate issuance of Privacy Pass tokens,
+  including Privacy Pass issuer applications themselves.
+
+Fragment identifier considerations:
+
+: N/A
+
+Additional information:
+
+: <dl spacing="compact">
+  <dt>Magic number(s):</dt><dd>N/A</dd>
+  <dt>Deprecated alias names for this type:</dt><dd>N/A</dd>
+  <dt>File extension(s):</dt><dd>N/A</dd>
+  <dt>Macintosh file type code(s):</dt><dd>N/A</dd>
+  </dl>
+
+Person and email address to contact for further information:
+
+: see Authors' Addresses section
+
+Intended usage:
+
+: COMMON
+
+Restrictions on usage:
+
+: N/A
+
+Author:
+
+: see Authors' Addresses section
+
+Change controller:
+
+: IETF
+{: spacing="compact"}
+
+### "application/private-token-batch-response" media type
+
+Type name:
+
+: application
+
+Subtype name:
+
+: private-token-response
+
+Required parameters:
+
+: N/A
+
+Optional parameters:
+
+: N/A
+
+Encoding considerations:
+
+: "binary"
+
+Security considerations:
+
+: see {{security-considerations}}
+
+Interoperability considerations:
+
+: N/A
+
+Published specification:
+
+: this specification
+
+Applications that use this media type:
+
+: Applications that want to issue or facilitate issuance of Privacy Pass tokens,
+  including Privacy Pass issuer applications themselves.
+
+Fragment identifier considerations:
+
+: N/A
+
+Additional information:
+
+: <dl spacing="compact">
+  <dt>Magic number(s):</dt><dd>N/A</dd>
+  <dt>Deprecated alias names for this type:</dt><dd>N/A</dd>
+  <dt>File extension(s):</dt><dd>N/A</dd>
+  <dt>Macintosh file type code(s):</dt><dd>N/A</dd>
+  </dl>
+
+Person and email address to contact for further information:
+
+: see Authors' Addresses section
+
+Intended usage:
+
+: COMMON
+
+Restrictions on usage:
+
+: N/A
+
+Author:
+
+: see Authors' Addresses section
+
+Change controller:
+
+: IETF
+{: spacing="compact"}
