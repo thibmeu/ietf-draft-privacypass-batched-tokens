@@ -92,7 +92,8 @@ with the input challenge and Issuer key identifier as described below:
 ~~~
 nonce_i = random(32)
 challenge_digest = SHA256(challenge)
-token_input = concat(token_type, nonce_i, challenge_digest, token_key_id)
+token_input = concat(token_type, nonce_i, challenge_digest,
+                token_key_id)
 blind_i, blinded_element_i = client_context.Blind(token_input)
 ~~~
 
@@ -155,7 +156,8 @@ the Client, the issuer forms a list of `Element` values, denoted
 
 ~~~
 server_context = SetupVOPRFServer(ciphersuiteID, skI, pkI)
-evaluated_elements, proof = server_context.BlindEvaluateBatch(skI, blinded_elements)
+evaluated_elements, proof =
+  server_context.BlindEvaluateBatch(skI, blinded_elements)
 ~~~
 
 `ciphersuiteID` is the ciphersuite identifier from {{OPRF}} corresponding
@@ -224,7 +226,8 @@ deserialization of either value fails, the Client aborts the protocol.
 Otherwise, the Client processes the response as follows:
 
 ~~~
-authenticator_values = client_context.FinalizeBatch(token_input, blind, evaluated_elements, blinded_elements, proof)
+authenticator_values = client_context.FinalizeBatch(token_input, blind,
+                         evaluated_elements, blinded_elements, proof)
 ~~~
 
 The `FinalizeBatch` function is a batched variant of the `Finalize` function as
@@ -252,7 +255,8 @@ Parameters:
 
 Errors: VerifyError
 
-def FinalizeBatch(input, blind, evaluatedElements, blindedElements, proof):
+def FinalizeBatch(input, blind,
+  evaluatedElements, blindedElements, proof):
   if VerifyProof(G.Generator(), pkS, blindedElements,
                  evaluatedElements, proof) == false:
     raise VerifyError
