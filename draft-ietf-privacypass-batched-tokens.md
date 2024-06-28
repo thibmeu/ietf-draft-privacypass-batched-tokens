@@ -62,7 +62,7 @@ to be used with the PrivateToken HTTP authentication scheme defined in
 
 # Motivation
 
-Privacy Pass Tokens (as defines in
+Privacy Pass tokens (as defined in {{ARCHITECTURE}} and
 {{!ISSUANCE=I-D.ietf-privacypass-protocol}}) offer a simple way to unlink the
 issuance from the redemption. The base protocol however only allows for a single
 token to be issued at a time for every challenge. In some cases, especially
