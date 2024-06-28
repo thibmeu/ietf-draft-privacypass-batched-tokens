@@ -68,7 +68,7 @@ The basic issuance protocols defined in {{RFC9578}} however only allow for a sin
 token to be issued at a time for every challenge. In some cases, especially
 where a large number of clients need to fetch a large number of tokens, this may
 introduce performance bottlenecks.
-The Batched Token Issuance Protocol improves
+Batched token issuance improves
 upon the basic Privately Verifiable Token issuance protocol in the following key
 ways:
 
