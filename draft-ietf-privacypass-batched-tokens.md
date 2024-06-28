@@ -328,7 +328,9 @@ struct {
 If the FinalizeBatch function fails, the Client aborts the protocol. Token
 verification works exactly as specified in {{ISSUANCE}}.
 
-# Arbitrary Batched Verifiable Token
+# Arbitrary Batched Token Issuance
+
+This section describes an issuance protocol mechanism for issuing multiple tokens in one round trip between Client and Issuer. An arbitrary batched token request can contain token requests for any token type.
 
 ## Client-to-Issuer Request {#arbitrary-client-to-issuer-request}
 
