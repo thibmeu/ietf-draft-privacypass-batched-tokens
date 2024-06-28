@@ -78,7 +78,7 @@ ways:
    VOPRF proof generation and verification, respectively.
 
 For the Publicly Verifiable Token issuance protocol, it allows for a single TokenRequest
-to be sent ........
+to be sent that encompasses multiple tokens. The cost remains linear.
 
 # Batched Privately Verifiable Token
 
@@ -342,6 +342,10 @@ The Client then creates a BatchedTokenRequest structured as follows:
 ~~~tls
 struct {
   uint16_t token_type;
+  opaque token_request<0..2^16-1>;
+} TokenRequest
+
+struct {
   TokenRequest token_requests<0..2^16-1>;
 } BatchTokenRequest
 ~~~
@@ -350,9 +354,7 @@ The structure fields are defined as follows:
 
 - "token_type" is a 2-octet integer, which matches the type of the TokenRequests in the batch.
 
-- "token_requests" are serialized TokenRequests, in network byte order. The number of token_requests, as a 2-octet integer, is prepended to the serialized TokenRequests. In addition, the 2-octet integer length of each TokenRequest is prepended to the serialized TokenRequests.
-
-The Client MUST ensure all token_requests have the same token_type, which is the same as the BatchedTokenRequest.token_type.
+- "token_requests" are serialized TokenRequests, in network byte order. The number of token_requests, as a 2-octet integer, is prepended to the serialized TokenRequests. In addition, the 2-octet integer length of each TokenRequest is prepended to the serialized TokenRequests. TokenRequest MUST start with a "token_type", not included in the inner opaque token_request attribute. 
 
 The Client then generates an HTTP POST request to send to the Issuer Request
 URL, with the BatchTokenRequest as the content. The media type for this request
@@ -373,35 +375,37 @@ Content-Length: <Length of BatchTokenRequest>
 
 Upon receipt of the request, the Issuer validates the following conditions:
 
-- The BatchTokenRequest contains a supported token_type registered with IANA.
-- The BatchTokenRequest contains token_requests with the same token_type, matching BatchTokenRequest.token_type.
+- The Content-Type is application/private-token-batch-request as registered with IANA.
 
-If any of these conditions is not met, the Issuer MUST return an HTTP 400 error
+If this condition is not met, the Issuer MUST return an HTTP 400 error
 to the client.
-For performance, an Issuer MAY return an HTTP 400 error if all token_requests are
-not targetted at the same cryptographic material.
 
-The Issuer then tries to deserialize the i-th element
-of BatchTokenRequest.token_requests using the protocol associated to BatchTokenRequest.token_type.
-If this fails for any of
-the BatchTokenRequest.token_requests values, the Issuer MUST return an HTTP 400
-error to the client. Otherwise, if the Issuer is willing to produce a token to
-the Client, the issuer creates a BatchTokenResponse structured as follows:
+The Issuer then tries to deserialize the first 4 bytes of the i-th element
+of BatchTokenRequest.token_requests.
+If this is not a token type registered with IANA, the Issuer MUST return an HTTP 400 error
+to the client.
+The issuer creates a BatchTokenResponse structured as follows:
 
 
 ~~~tls
 struct {
   TokenResponse token_responses<0..2^16-1>;
-} BatchedTokenResponse
+} BatchTokenResponse
 ~~~
 
 The structure fields are defined as follows:
 
 - "token_responses" are serialized TokenResponses, in network byte order. The number of token_responses, as a 2-octet integer, is prepended to the serialized TokenResponses This matches the number of incoming token_requests. In addition, the 2-octet integer length of each TokenResponse is prepended to the serialized TokenResponses.
 
+A BatchedTokenResponse.token_response of size 0 indicates that the Issuer
+failed or refused to issue the i-th TokenRequest.
+
 The Issuer generates an HTTP response with status code 200 whose content
 consists of TokenResponse, with the content type set as
 "application/private-token-batch-response".
+
+If the Issuer issues some tokens but not all,
+it MUST return an HTTP 206 to the client and continue processing further requests.
 
 ~~~
 HTTP/1.1 200 OK
@@ -415,15 +419,13 @@ Content-Length: <Length of BatchTokenResponse>
 
 ## Finalization {#arbitrary-finalization}
 
-The Client MUST validate that the TokenResponse.token_type matches the
-BatchedTokenRequest.token_type.
-
-The Client then tries to deserialize the i-th element
+The Client tries to deserialize the i-th element
 of BatchTokenResponse.token_responses using the protocol associated to BatchTokenRequest.token_type.
-It then finalizes these tokens as specified in their respective protocols.
 
-If the FinalizeBatch function fails, the Client aborts the protocol. Token
-verification is unchanged.
+If the element has a size of 0, the Client MUST ignore this token, and continue processing the next token.
+
+If the issuance protocol defines it, the Client finalizes these tokens. If this function fails, the Client aborts the protocol.
+Token verification is unchanged.
 
 # Security considerations {#security-considerations}
 
@@ -437,7 +439,7 @@ requests per client per key.
 ## Arbitrary Batched Verifiable Tokens
 
 Implementors SHOULD be aware of the inherent linear cost of this token type.
-Applications SHOULD place limits on the number of tokens per request.
+An Issuer MAY ignore TokenRequest if the number of tokens per request past a limit.
 
 # IANA considerations
 
