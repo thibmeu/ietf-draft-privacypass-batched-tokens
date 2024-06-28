@@ -82,6 +82,8 @@ to be sent ........
 
 # Batched Privately Verifiable Token
 
+This section describes a batched issuance protocol for select token types, including 0x0001 (defined in {{RFC9578}}) and 0xF91A (defined in this document). 
+
 ## Client-to-Issuer Request {#client-to-issuer-request}
 
 Except where specified otherwise, the client follows the same protocol as
