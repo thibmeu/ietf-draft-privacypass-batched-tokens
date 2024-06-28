@@ -63,8 +63,8 @@ to be used with the PrivateToken HTTP authentication scheme defined in
 # Motivation
 
 Privacy Pass tokens (as defined in {{ARCHITECTURE}} and
-{{!ISSUANCE=I-D.ietf-privacypass-protocol}}) offer a simple way to unlink the
-issuance from the redemption. The base protocol however only allows for a single
+{{!ISSUANCE=I-D.ietf-privacypass-protocol}}) are unlinkable during issuance and redemption.
+The basic issuance protocols defined in {{RFC9578}} however only allow for a single
 token to be issued at a time for every challenge. In some cases, especially
 where a large number of clients need to fetch a large number of tokens, this may
 introduce performance bottlenecks.
