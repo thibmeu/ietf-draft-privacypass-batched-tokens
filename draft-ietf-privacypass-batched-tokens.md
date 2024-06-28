@@ -42,9 +42,8 @@ The base Privacy Pass issuance protocol
 which can either be publicly verifiable or not. While it is possible to run
 multiple instances of the issuance protocol in parallel, e.g., over a
 multiplexed transport such as HTTP/3 {{?HTTP3=RFC9114}} or by orchestrating multiple
-HTTP requests, these ad-hoc solutions varies from one implementation to the next. In
-addition, they cannot take advantage of cryptographic optimisations, and their cost
-always scales linearly with the number of instances.
+HTTP requests, these ad-hoc solutions vary based on transport protocol support. In
+addition, in some cases, they cannot take advantage of cryptographic optimizations.
 
 The first variant of the issuance protocol builds upon the privately verifiable
 issuance protocol in {{ISSUANCE}} that uses VOPRF {{!OPRF=I-D.irtf-cfrg-voprf}},
