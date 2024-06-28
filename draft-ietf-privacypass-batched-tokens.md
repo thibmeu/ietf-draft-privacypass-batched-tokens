@@ -343,7 +343,7 @@ The Client then creates a BatchedTokenRequest structured as follows:
 struct {
   uint16_t token_type;
   TokenRequest token_requests<0..2^16-1>;
-} BatchedTokenRequest
+} BatchTokenRequest
 ~~~
 
 The structure fields are defined as follows:
