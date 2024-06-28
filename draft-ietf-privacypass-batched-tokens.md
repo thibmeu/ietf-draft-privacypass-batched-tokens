@@ -411,7 +411,6 @@ Content-Length: <Length of BatchTokenResponse>
 <Bytes containing the BatchTokenResponse>
 ~~~
 
-An Issuer MAY accept streamed request, and MAY provide TokenResponse to the Client as they are ready.
 
 
 ## Finalization {#arbitrary-finalization}
