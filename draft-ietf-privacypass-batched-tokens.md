@@ -33,12 +33,12 @@ one token at a time and for issuers to issue more than one token at a time.
 # Introduction
 
 This document specifies two Privacy Pass issuance protocols (as
-defined in {{!ARCH=I-D.ietf-privacypass-architecture}}) that allow for batched
+defined in {{!RFC9576=I-D.ietf-privacypass-architecture}}) that allow for batched
 issuance of tokens. This allows clients to request more than one token at a time
 and for issuers to issue more than one token at a time.
 
 The base Privacy Pass issuance protocol
-{{!ISSUANCE=I-D.ietf-privacypass-protocol}} defines stateless anonymous tokens,
+{{!RFC9578=I-D.ietf-privacypass-protocol}} defines stateless anonymous tokens,
 which can either be publicly verifiable or not. While it is possible to run
 multiple instances of the issuance protocol in parallel, e.g., over a
 multiplexed transport such as HTTP/3 {{?HTTP3=RFC9114}} or by orchestrating multiple
@@ -46,7 +46,7 @@ HTTP requests, these ad-hoc solutions vary based on transport protocol support. 
 addition, in some cases, they cannot take advantage of cryptographic optimizations.
 
 The first variant of the issuance protocol builds upon the privately verifiable
-issuance protocol in {{ISSUANCE}} that uses VOPRF {{!OPRF=I-D.irtf-cfrg-voprf}},
+issuance protocol in {{RFC9578}} that uses VOPRF {{!OPRF=I-D.irtf-cfrg-voprf}},
 and allows for batched issuance of tokens. This allows clients to request more
 than one token at a time and for issuers to issue more than one token at a
 time. In effect, private batched issuance performance scales better than linearly.
@@ -62,8 +62,8 @@ to be used with the PrivateToken HTTP authentication scheme defined in
 
 # Motivation
 
-Privacy Pass tokens (as defined in {{ARCHITECTURE}} and
-{{!ISSUANCE=I-D.ietf-privacypass-protocol}}) are unlinkable during issuance and redemption.
+Privacy Pass tokens (as defined in {{RFC9576}} and
+{{!RFC9578=I-D.ietf-privacypass-protocol}}) are unlinkable during issuance and redemption.
 The basic issuance protocols defined in {{RFC9578}} however only allow for a single
 token to be issued at a time for every challenge. In some cases, especially
 where a large number of clients need to fetch a large number of tokens, this may
@@ -82,12 +82,12 @@ to be sent that encompasses multiple tokens. The cost remains linear.
 
 # Batched Privately Verifiable Token
 
-This section describes a batched issuance protocol for select token types, including 0x0001 (defined in {{RFC9578}}) and 0xF91A (defined in this document). 
+This section describes a batched issuance protocol for select token types, including 0x0001 (defined in {{RFC9578}}) and 0xF91A (defined in this document).
 
 ## Client-to-Issuer Request {#client-to-issuer-request}
 
 Except where specified otherwise, the client follows the same protocol as
-described in {{ISSUANCE, Section 5.1}}.
+described in {{RFC9578, Section 5.1}}.
 
 The Client first creates a context as follows:
 
@@ -159,7 +159,7 @@ Content-Length: <Length of BatchTokenRequest>
 ## Issuer-to-Client Response {#issuer-to-client-response}
 
 Except where specified otherwise, the client follows the same protocol as
-described in {{ISSUANCE, Section 5.2}}.
+described in {{RFC9578, Section 5.2}}.
 
 Upon receipt of the request, the Issuer validates the following conditions:
 
@@ -326,7 +326,7 @@ struct {
 ~~~
 
 If the FinalizeBatch function fails, the Client aborts the protocol. Token
-verification works exactly as specified in {{ISSUANCE}}.
+verification works exactly as specified in {{RFC9578}}.
 
 # Arbitrary Batched Token Issuance
 
@@ -335,7 +335,7 @@ This section describes an issuance protocol mechanism for issuing multiple token
 ## Client-to-Issuer Request {#arbitrary-client-to-issuer-request}
 
 The Client first creates all TokenRequest it wants to batch. To do so, the client follows
-protocol describing issuance, such as {{ISSUANCE, Section 5.1}} or {{ISSUANCE, Section 6.1}}.
+protocol describing issuance, such as {{RFC9578, Section 5.1}} or {{RFC9578, Section 6.1}}.
 
 The Client then creates a BatchedTokenRequest structured as follows:
 
@@ -354,7 +354,7 @@ The structure fields are defined as follows:
 
 - "token_type" is a 2-octet integer, which matches the type of the TokenRequests in the batch.
 
-- "token_requests" are serialized TokenRequests, in network byte order. The number of token_requests, as a 2-octet integer, is prepended to the serialized TokenRequests. In addition, the 2-octet integer length of each TokenRequest is prepended to the serialized TokenRequests. TokenRequest MUST start with a "token_type", not included in the inner opaque token_request attribute. 
+- "token_requests" are serialized TokenRequests, in network byte order. The number of token_requests, as a 2-octet integer, is prepended to the serialized TokenRequests. In addition, the 2-octet integer length of each TokenRequest is prepended to the serialized TokenRequests. TokenRequest MUST start with a "token_type", not included in the inner opaque token_request attribute.
 
 The Client then generates an HTTP POST request to send to the Issuer Request
 URL, with the BatchTokenRequest as the content. The media type for this request
@@ -460,7 +460,7 @@ following entry:
 * Private Metadata: N
 * Nk: 32
 * Nid: 32
-* Reference: {{ISSUANCE, Section 5}}
+* Reference: {{RFC9578, Section 5}}
 * Notes: None
 
 ## Media Types
