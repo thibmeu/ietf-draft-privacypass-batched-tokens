@@ -354,7 +354,24 @@ The structure fields are defined as follows:
 
 - "token_type" is a 2-octet integer, which matches the type of the TokenRequests in the batch.
 
-- "token_requests" are serialized TokenRequests, in network byte order. The number of token_requests, as a 2-octet integer, is prepended to the serialized TokenRequests. In addition, the 2-octet integer length of each TokenRequest is prepended to the serialized TokenRequests. TokenRequest MUST start with a "token_type", not included in the inner opaque token_request attribute.
+- "token_requests" are serialized TokenRequests, in network byte order. The number of token_requests, as a 2-octet integer, is prepended to the serialized TokenRequests. In addition, the 2-octet integer length of each TokenRequest is prepended to the serialized TokenRequests.
+
+TokenRequest MUST be prefixed with a uint16 "token_type" indicating the token type. The rest of the structure follows based on that type, within the inner opaque token_request attribute.
+For instance, the TokenRequest defined in {{RFC9578}} would correspond to the following
+
+~~~tls
+struct {
+   uint16_t token_type;
+   select (token_type) {
+      case (0x0001): /* Type VOPRF(P-384, SHA-384), RFC 9578 */
+         uint8_t truncated_token_key_id;
+         uint8_t blinded_msg[Ne];
+      case (0x0002): /* Type Blind RSA (2048-bit), RFC 9578 */
+         uint8_t truncated_token_key_id;
+         uint8_t blinded_msg[Nk];
+   }
+} TokenRequest;
+~~~
 
 The Client then generates an HTTP POST request to send to the Issuer Request
 URL, with the BatchTokenRequest as the content. The media type for this request
@@ -380,25 +397,33 @@ Upon receipt of the request, the Issuer validates the following conditions:
 If this condition is not met, the Issuer MUST return an HTTP 400 error
 to the client.
 
-The Issuer then tries to deserialize the first 4 bytes of the i-th element
+The Issuer then tries to deserialize the first 2 bytes of the i-th element
 of BatchTokenRequest.token_requests.
 If this is not a token type registered with IANA, the Issuer MUST return an HTTP 400 error
 to the client.
 The issuer creates a BatchTokenResponse structured as follows:
 
-
 ~~~tls
 struct {
-  TokenResponse token_responses<0..2^16-1>;
+  TokenResponse token_response; /* Defined by token_type */
+} InnerTokenResponse;
+
+struct {
+  InnerTokenResponse token_responses<0..2^16-1>;
 } BatchTokenResponse
 ~~~
 
 The structure fields are defined as follows:
 
-- "token_responses" are serialized TokenResponses, in network byte order. The number of token_responses, as a 2-octet integer, is prepended to the serialized TokenResponses This matches the number of incoming token_requests. In addition, the 2-octet integer length of each TokenResponse is prepended to the serialized TokenResponses.
+- "token_response" are serialized TokenResponse, in network byte order, as defined by their token type.
 
-A BatchedTokenResponse.token_response of size 0 indicates that the Issuer
-failed or refused to issue the i-th TokenRequest.
+- "token_responses" are serialised InnerTokenResponses. The number of
+token_responses, as a 2-octet integer, is prepended to the serialized
+InnerTokenResponses This matches the number of incoming
+token_requests. In addition, the 2-octet integer length of each
+InnerTokenResponse is prepended to the serialized InnerTokenResponses.
+A size 0 indicates that the Issuer failed or refused to issue the i-th
+TokenRequest.
 
 The Issuer generates an HTTP response with status code 200 whose content
 consists of TokenResponse, with the content type set as
