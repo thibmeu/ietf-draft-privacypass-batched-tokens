@@ -341,9 +341,16 @@ The Client then creates a BatchedTokenRequest structured as follows:
 
 ~~~tls
 struct {
-  uint16_t token_type;
-  opaque token_request<0..2^16-1>;
-} TokenRequest
+   uint16_t token_type;
+   select (token_type) {
+      case (0x0001): /* Type VOPRF(P-384, SHA-384), RFC 9578 */
+         uint8_t truncated_token_key_id;
+         uint8_t blinded_msg[Ne];
+      case (0x0002): /* Type Blind RSA (2048-bit), RFC 9578 */
+         uint8_t truncated_token_key_id;
+         uint8_t blinded_msg[Nk];
+   }
+} TokenRequest;
 
 struct {
   TokenRequest token_requests<0..2^16-1>;
@@ -352,12 +359,9 @@ struct {
 
 The structure fields are defined as follows:
 
-- "token_type" is a 2-octet integer, which matches the type of the TokenRequests in the batch.
+- "token_type" is a 2-octet integer. TokenRequest MUST be prefixed with a uint16 "token_type" indicating the token type. The rest of the structure follows based on that type, within the inner opaque token_request attribute. The above definition corresponds to TokenRequest from {{RFC9578}}
 
 - "token_requests" are serialized TokenRequests, in network byte order. The number of token_requests, as a 2-octet integer, is prepended to the serialized TokenRequests. In addition, the 2-octet integer length of each TokenRequest is prepended to the serialized TokenRequests.
-
-TokenRequest MUST be prefixed with a uint16 "token_type" indicating the token type. The rest of the structure follows based on that type, within the inner opaque token_request attribute.
-For instance, the TokenRequest defined in {{RFC9578}} would correspond to the following
 
 ~~~tls
 struct {
@@ -405,7 +409,7 @@ The issuer creates a BatchTokenResponse structured as follows:
 
 ~~~tls
 struct {
-  TokenResponse token_response; /* Defined by token_type */
+  TokenResponse token_response<0..2^16-1>; /* Defined by token_type */
 } InnerTokenResponse;
 
 struct {
@@ -415,15 +419,14 @@ struct {
 
 The structure fields are defined as follows:
 
-- "token_response" are serialized TokenResponse, in network byte order, as defined by their token type.
+- "token_response" are serialized TokenResponse, in network byte order,
+as defined by their token type. A size 0 indicates that the Issuer
+failed or refused to issue the associated TokenRequest.
 
 - "token_responses" are serialised InnerTokenResponses. The number of
 token_responses, as a 2-octet integer, is prepended to the serialized
 InnerTokenResponses This matches the number of incoming
-token_requests. In addition, the 2-octet integer length of each
-InnerTokenResponse is prepended to the serialized InnerTokenResponses.
-A size 0 indicates that the Issuer failed or refused to issue the i-th
-TokenRequest.
+token_requests.
 
 The Issuer generates an HTTP response with status code 200 whose content
 consists of TokenResponse, with the content type set as
