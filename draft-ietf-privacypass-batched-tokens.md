@@ -410,10 +410,10 @@ The issuer creates a BatchTokenResponse structured as follows:
 ~~~tls
 struct {
   TokenResponse token_response<0..2^16-1>; /* Defined by token_type */
-} InnerTokenResponse;
+} OptionalTokenResponse;
 
 struct {
-  InnerTokenResponse token_responses<0..2^16-1>;
+  OptionalTokenResponse token_responses<0..2^16-1>;
 } BatchTokenResponse
 ~~~
 
