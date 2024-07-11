@@ -443,7 +443,6 @@ Content-Length: <Length of BatchTokenResponse>
 
 The Client tries to deserialize the i-th element
 of BatchTokenResponse.token_responses using the protocol associated to BatchTokenRequest.token_type.
-
 If the element has a size of 0, the Client MUST ignore this token, and continue processing the next token.
 The Client finalizes each deserialized TokenResponse using the matching TokenRequest according
 to the corresponding finalization procedure defined by the token type.
