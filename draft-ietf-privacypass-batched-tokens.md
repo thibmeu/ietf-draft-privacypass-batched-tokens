@@ -445,9 +445,8 @@ The Client tries to deserialize the i-th element
 of BatchTokenResponse.token_responses using the protocol associated to BatchTokenRequest.token_type.
 
 If the element has a size of 0, the Client MUST ignore this token, and continue processing the next token.
-
-If the issuance protocol defines it, the Client finalizes these tokens. If this function fails, the Client aborts the protocol.
-Token verification is unchanged.
+The Client finalizes each deserialized TokenResponse using the matching TokenRequest according
+to the corresponding finalization procedure defined by the token type.
 
 # Security considerations {#security-considerations}
 
