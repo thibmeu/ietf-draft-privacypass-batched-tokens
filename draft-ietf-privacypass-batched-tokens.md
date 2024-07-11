@@ -417,16 +417,10 @@ struct {
 } BatchTokenResponse
 ~~~
 
-The structure fields are defined as follows:
-
-- "token_response" are serialized TokenResponse, in network byte order,
-as defined by their token type. A size 0 indicates that the Issuer
-failed or refused to issue the associated TokenRequest.
-
-- "token_responses" are serialised InnerTokenResponses. The number of
-token_responses, as a 2-octet integer, is prepended to the serialized
-InnerTokenResponses This matches the number of incoming
-token_requests.
+BatchTokenResponse.token_responses is a vector of OptionalTokenResponses, length
+prefixed with two bytes. OptionalTokenResponse.token_response is a length-prefix-encoded
+TokenResponse, where a length of 0 indicates that the Issuer failed or refused to issue the
+associated TokenRequest.
 
 The Issuer generates an HTTP response with status code 200 whose content
 consists of TokenResponse, with the content type set as
