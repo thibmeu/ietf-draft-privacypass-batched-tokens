@@ -363,19 +363,6 @@ The structure fields are defined as follows:
 
 - "token_requests" are serialized TokenRequests, in network byte order. The number of token_requests, as a 2-octet integer, is prepended to the serialized TokenRequests. In addition, the 2-octet integer length of each TokenRequest is prepended to the serialized TokenRequests.
 
-~~~tls
-struct {
-   uint16_t token_type;
-   select (token_type) {
-      case (0x0001): /* Type VOPRF(P-384, SHA-384), RFC 9578 */
-         uint8_t truncated_token_key_id;
-         uint8_t blinded_msg[Ne];
-      case (0x0002): /* Type Blind RSA (2048-bit), RFC 9578 */
-         uint8_t truncated_token_key_id;
-         uint8_t blinded_msg[Nk];
-   }
-} TokenRequest;
-~~~
 
 The Client then generates an HTTP POST request to send to the Issuer Request
 URL, with the BatchTokenRequest as the content. The media type for this request
