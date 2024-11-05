@@ -49,28 +49,29 @@ draft-01
 
 # Introduction
 
-This document specifies a variant of the Privacy Pass issuance protocol (as
-defined in {{!ARCH=I-D.ietf-privacypass-architecture}}) that allows for batched
+This document specifies two Privacy Pass issuance protocols (as
+defined in {{!RFC9576=I-D.ietf-privacypass-architecture}}) that allow for batched
 issuance of tokens. This allows clients to request more than one token at a time
 and for issuers to issue more than one token at a time.
 
 The base Privacy Pass issuance protocol
-{{!ISSUANCE=I-D.ietf-privacypass-protocol}} defines stateless anonymous tokens,
+{{!RFC9578=I-D.ietf-privacypass-protocol}} defines stateless anonymous tokens,
 which can either be publicly verifiable or not. While it is possible to run
 multiple instances of the issuance protocol in parallel, e.g., over a
-multiplexed transport such as HTTP/3 {{?HTTP3=RFC9114}}, the cost of doing so
-scales linearly with the number of instances.
+multiplexed transport such as HTTP/3 {{?HTTP3=RFC9114}} or by orchestrating multiple
+HTTP requests, these ad-hoc solutions vary based on transport protocol support. In
+addition, in some cases, they cannot take advantage of cryptographic optimizations.
 
-This variant of the issuance protocol builds upon the privately verifiable
-issuance protocol in {{ISSUANCE}} that uses VOPRF {{!OPRF=I-D.irtf-cfrg-voprf}},
+The first variant of the issuance protocol builds upon the privately verifiable
+issuance protocol in {{RFC9578}} that uses VOPRF {{!OPRF=I-D.irtf-cfrg-voprf}},
 and allows for batched issuance of tokens. This allows clients to request more
 than one token at a time and for issuers to issue more than one token at a
-time. In effect, batched issuance performance scales better than linearly.
+time. In effect, private batched issuance performance scales better than linearly.
 
-The token type for this issuance protocol is the same as in the non-batched
-issuance protocol. This is because the underlying cryptographic protocol is
-the same. As a result, the batched issuance protocol in this document only
-works with token types that support batching.
+The second variant of the issuance protocol introduces a new Client-Issuer communication method,
+which allows for batched issuance of arbitrary token types. This allows clients to request more
+than one token at a time and for issuers to issue more than one token at a
+time. This variant has no other effect than batching requests and responses and the issuance performance remains linear.
 
 This batched issuance protocol registers one new token type ({{iana-token-type}}),
 to be used with the PrivateToken HTTP authentication scheme defined in
@@ -78,12 +79,13 @@ to be used with the PrivateToken HTTP authentication scheme defined in
 
 # Motivation
 
-Privately Verifiable Tokens (as defines in
-{{!ISSUANCE=I-D.ietf-privacypass-protocol}}) offer a simple way to unlink the
-issuance from the redemption. The base protocol however only allows for a single
+Privacy Pass tokens (as defined in {{RFC9576}} and
+{{!RFC9578=I-D.ietf-privacypass-protocol}}) are unlinkable during issuance and redemption.
+The basic issuance protocols defined in {{RFC9578}} however only allow for a single
 token to be issued at a time for every challenge. In some cases, especially
 where a large number of clients need to fetch a large number of tokens, this may
-introduce performance bottlenecks. The Batched Token Issuance Protocol improves
+introduce performance bottlenecks.
+Batched token issuance improves
 upon the basic Privately Verifiable Token issuance protocol in the following key
 ways:
 
@@ -92,10 +94,20 @@ ways:
 1. Improving server and client issuance efficiency by amortizing the cost of the
    VOPRF proof generation and verification, respectively.
 
-# Client-to-Issuer Request {#client-to-issuer-request}
+For all Verifiable Token issuance protocol, it allows for a single TokenRequest
+to be sent that encompasses multiple token requests.
+This enables the issuance of tokens for more than one key in one round trip between the Client and the Issuer.
+The cost remains linear.
+
+# Batched Privately Verifiable Token
+
+This section describes a batched issuance protocol for select token types, including 0x0001 (defined in {{RFC9578}}) and 0xF91A (defined in this document).
+This variant is more efficient than Arbitary Batch Token Issuance defined below. It does so by requiring the same key to be used by all token requests.
+
+## Client-to-Issuer Request {#client-to-issuer-request}
 
 Except where specified otherwise, the client follows the same protocol as
-described in {{ISSUANCE, Section 5.1}}.
+described in {{RFC9578, Section 5.1}}.
 
 The Client first creates a context as follows:
 
@@ -152,23 +164,23 @@ The structure fields are defined as follows:
 
 The Client then generates an HTTP POST request to send to the Issuer Request
 URL, with the BatchTokenRequest as the content. The media type for this request
-is "application/private-token-batch-request". An example request for the Issuer
+is "application/private-token-privately-verifiable-batch-request". An example request for the Issuer
 Request URL "https://issuer.example.net/request" is shown below.
 
 ~~~
 POST /request HTTP/1.1
 Host: issuer.example.net
-Accept: application/private-token-batch-response
-Content-Type: application/private-token-batch-request
+Accept: application/private-token-privately-verifiable-batch-response
+Content-Type: application/private-token-privately-verifiable-batch-request
 Content-Length: <Length of BatchTokenRequest>
 
 <Bytes containing the BatchTokenRequest>
 ~~~
 
-# Issuer-to-Client Response {#issuer-to-client-response}
+## Issuer-to-Client Response {#issuer-to-client-response}
 
 Except where specified otherwise, the client follows the same protocol as
-described in {{ISSUANCE, Section 5.2}}.
+described in {{RFC9578, Section 5.2}}.
 
 Upon receipt of the request, the Issuer validates the following conditions:
 
@@ -256,17 +268,17 @@ The structure fields are defined as follows:
 
 The Issuer generates an HTTP response with status code 200 whose content
 consists of TokenResponse, with the content type set as
-"application/private-token-batch-response".
+"application/private-token-privately-verifiable-batch-response".
 
 ~~~
 HTTP/1.1 200 OK
-Content-Type: application/private-token-batch-response
+Content-Type: application/private-token-privately-verifiable-batch-response
 Content-Length: <Length of BatchTokenResponse>
 
 <Bytes containing the BatchTokenResponse>
 ~~~
 
-# Finalization {#finalization}
+## Finalization {#finalization}
 
 Upon receipt, the Client handles the response and, if successful, deserializes
 the body values TokenResponse.evaluate_response and
@@ -338,14 +350,127 @@ struct {
 ~~~
 
 If the FinalizeBatch function fails, the Client aborts the protocol. Token
-verification works exactly as specified in {{ISSUANCE}}.
+verification works exactly as specified in {{RFC9578}}.
+
+# Arbitrary Batched Token Issuance
+
+This section describes an issuance protocol mechanism for issuing multiple tokens in one round trip between Client and Issuer. An arbitrary batched token request can contain token requests for any token type.
+
+## Client-to-Issuer Request {#arbitrary-client-to-issuer-request}
+
+The Client first creates all TokenRequest it wants to batch. To do so, the client follows
+protocol describing issuance, such as {{RFC9578, Section 5.1}} or {{RFC9578, Section 6.1}}.
+
+The Client then creates a BatchedTokenRequest structured as follows:
+
+~~~tls
+struct {
+   uint16_t token_type;
+   select (token_type) {
+      case (0x0001): /* Type VOPRF(P-384, SHA-384), RFC 9578 */
+         uint8_t truncated_token_key_id;
+         uint8_t blinded_msg[Ne];
+      case (0x0002): /* Type Blind RSA (2048-bit), RFC 9578 */
+         uint8_t truncated_token_key_id;
+         uint8_t blinded_msg[Nk];
+   }
+} TokenRequest;
+
+struct {
+  TokenRequest token_requests<0..2^16-1>;
+} BatchTokenRequest
+~~~
+
+The structure fields are defined as follows:
+
+- "token_type" is a 2-octet integer. TokenRequest MUST be prefixed with a uint16 "token_type" indicating the token type. The rest of the structure follows based on that type, within the inner opaque token_request attribute. The above definition corresponds to TokenRequest from {{RFC9578}}. For TokenRequest not defined in {{RFC9578}}, they MAY be used as long as they are prefixed with a 2-octet token_type.
+
+- "token_requests" are serialized TokenRequests, in network byte order. The number of token_requests, as a 2-octet integer, is prepended to the serialized TokenRequests. In addition, the 2-octet integer length of each TokenRequest is prepended to the serialized TokenRequests.
+
+
+The Client then generates an HTTP POST request to send to the Issuer Request
+URL, with the BatchTokenRequest as the content. The media type for this request
+is "application/private-token-arbitrary-batch-request". An example request for the Issuer
+Request URL "https://issuer.example.net/request" is shown below.
+
+~~~
+POST /request HTTP/1.1
+Host: issuer.example.net
+Accept: application/private-token-arbitrary-batch-response
+Content-Type: application/private-token-arbitrary-batch-request
+Content-Length: <Length of BatchTokenRequest>
+
+<Bytes containing the BatchTokenRequest>
+~~~
+
+## Issuer-to-Client Response {#arbitrary-issuer-to-client-response}
+
+Upon receipt of the request, the Issuer validates the following conditions:
+
+- The Content-Type is application/private-token-arbitrary-batch-request as registered with IANA.
+
+If this condition is not met, the Issuer MUST return an HTTP 400 error
+to the client.
+
+The Issuer then tries to deserialize the first 2 bytes of the i-th element
+of BatchTokenRequest.token_requests.
+If this is not a token type registered with IANA, the Issuer MUST return an HTTP 400 error
+to the client.
+The issuer creates a BatchTokenResponse structured as follows:
+
+~~~tls
+struct {
+  TokenResponse token_response<0..2^16-1>; /* Defined by token_type */
+} OptionalTokenResponse;
+
+struct {
+  OptionalTokenResponse token_responses<0..2^16-1>;
+} BatchTokenResponse
+~~~
+
+BatchTokenResponse.token_responses is a vector of OptionalTokenResponses, length
+prefixed with two bytes. OptionalTokenResponse.token_response is a length-prefix-encoded
+TokenResponse, where a length of 0 indicates that the Issuer failed or refused to issue the
+associated TokenRequest.
+
+The Issuer generates an HTTP response with status code 200 whose content
+consists of TokenResponse, with the content type set as
+"application/private-token-arbitrary-batch-response".
+
+If the Issuer issues some tokens but not all,
+it MUST return an HTTP 206 to the client and continue processing further requests.
+
+~~~
+HTTP/1.1 200 OK
+Content-Type: application/private-token-arbitrary-batch-response
+Content-Length: <Length of BatchTokenResponse>
+
+<Bytes containing the BatchTokenResponse>
+~~~
+
+
+
+## Finalization {#arbitrary-finalization}
+
+The Client tries to deserialize the i-th element
+of BatchTokenResponse.token_responses using the protocol associated to BatchTokenRequest.token_type.
+If the element has a size of 0, the Client MUST ignore this token, and continue processing the next token.
+The Client finalizes each deserialized TokenResponse using the matching TokenRequest according
+to the corresponding finalization procedure defined by the token type.
 
 # Security considerations {#security-considerations}
+
+## Batched Privately Verifiable Tokens
 
 Implementors SHOULD be aware of the security considerations described in {{OPRF,
 Section 6.2.3}} and implement mitigation mechanisms. Application can mitigate
 this issue by limiting the number of clients and limiting the number of token
 requests per client per key.
+
+## Arbitrary Batched Verifiable Tokens
+
+Implementors SHOULD be aware of the inherent linear cost of this token type.
+An Issuer MAY ignore TokenRequest if the number of tokens per request past a limit.
 
 # IANA considerations
 
@@ -366,7 +491,7 @@ following entry:
 * Private Metadata: N
 * Nk: 32
 * Nid: 32
-* Reference: {{ISSUANCE, Section 5}}
+* Reference: {{RFC9578, Section 5}}
 * Notes: None
 
 ## Media Types
@@ -374,13 +499,15 @@ following entry:
 The following entries should be added to the IANA "media types"
 registry:
 
-- "application/private-token-batch-request"
-- "application/private-token-batch-response"
+- "application/private-token-privately-verifiable-batch-request"
+- "application/private-token-privately-verifiable-batch-response"
+- "application/private-token-arbitrary-batch-request"
+- "application/private-token-arbitrary-batch-response"
 
 The templates for these entries are listed below and the
 reference should be this RFC.
 
-### "application/private-token-batch-request" media type
+### "application/private-token-privately-verifiable-batch-request" media type
 
 Type name:
 
@@ -453,7 +580,153 @@ Change controller:
 : IETF
 {: spacing="compact"}
 
-### "application/private-token-batch-response" media type
+### "application/private-token-privately-verifiable-batch-response" media type
+
+Type name:
+
+: application
+
+Subtype name:
+
+: private-token-response
+
+Required parameters:
+
+: N/A
+
+Optional parameters:
+
+: N/A
+
+Encoding considerations:
+
+: "binary"
+
+Security considerations:
+
+: see {{security-considerations}}
+
+Interoperability considerations:
+
+: N/A
+
+Published specification:
+
+: this specification
+
+Applications that use this media type:
+
+: Applications that want to issue or facilitate issuance of Privacy Pass tokens,
+  including Privacy Pass issuer applications themselves.
+
+Fragment identifier considerations:
+
+: N/A
+
+Additional information:
+
+: <dl spacing="compact">
+  <dt>Magic number(s):</dt><dd>N/A</dd>
+  <dt>Deprecated alias names for this type:</dt><dd>N/A</dd>
+  <dt>File extension(s):</dt><dd>N/A</dd>
+  <dt>Macintosh file type code(s):</dt><dd>N/A</dd>
+  </dl>
+
+Person and email address to contact for further information:
+
+: see Authors' Addresses section
+
+Intended usage:
+
+: COMMON
+
+Restrictions on usage:
+
+: N/A
+
+Author:
+
+: see Authors' Addresses section
+
+Change controller:
+
+: IETF
+{: spacing="compact"}
+
+### "application/private-token-arbitrary-batch-request" media type
+
+Type name:
+
+: application
+
+Subtype name:
+
+: private-token-request
+
+Required parameters:
+
+: N/A
+
+Optional parameters:
+
+: N/A
+
+Encoding considerations:
+
+: "binary"
+
+Security considerations:
+
+: see {{security-considerations}}
+
+Interoperability considerations:
+
+: N/A
+
+Published specification:
+
+: this specification
+
+Applications that use this media type:
+
+: Applications that want to issue or facilitate issuance of Privacy Pass tokens,
+  including Privacy Pass issuer applications themselves.
+
+Fragment identifier considerations:
+
+: N/A
+
+Additional information:
+
+: <dl spacing="compact">
+  <dt>Magic number(s):</dt><dd>N/A</dd>
+  <dt>Deprecated alias names for this type:</dt><dd>N/A</dd>
+  <dt>File extension(s):</dt><dd>N/A</dd>
+  <dt>Macintosh file type code(s):</dt><dd>N/A</dd>
+  </dl>
+
+Person and email address to contact for further information:
+
+: see Authors' Addresses section
+
+Intended usage:
+
+: COMMON
+
+Restrictions on usage:
+
+: N/A
+
+Author:
+
+: see Authors' Addresses section
+
+Change controller:
+
+: IETF
+{: spacing="compact"}
+
+### "application/private-token-arbitrary-batch-response" media type
 
 Type name:
 
