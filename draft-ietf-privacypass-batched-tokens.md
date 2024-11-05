@@ -56,7 +56,7 @@ which allows for batched issuance of arbitrary token types. This allows clients 
 than one token at a time and for issuers to issue more than one token at a
 time. In effect, arbitrary batched tokens performance is linear.
 
-This batched issuance protocol registers two new token types ({{iana-token-type}}),
+This batched issuance protocol registers one new token type ({{iana-token-type}}),
 to be used with the PrivateToken HTTP authentication scheme defined in
 {{!AUTHSCHEME=I-D.ietf-privacypass-auth-scheme}}.
 
