@@ -395,17 +395,14 @@ struct {
 
 The structure fields are defined as follows:
 
-- "token_type" is a 2-octet integer. TokenRequest MUST be prefixed with a uint16
-  "token_type" indicating the token type. The rest of the structure follows
-  based on that type, within the inner opaque token_request attribute. The above
-  definition corresponds to TokenRequest from {{RFC9578}}. For TokenRequest not
-  defined in {{RFC9578}}, they MAY be used as long as they are prefixed with a
-  2-octet token_type.
+- TokenRequest's "token_type" is a 2-octet integer. TokenRequest MUST always start
+  with a uint16 "token_type" indicating the token type. The rest of the
+  structure follows based on that type, within the inner opaque token_request
+  attribute. The above definition corresponds to TokenRequest from {{RFC9578}}.
+  A TokenRequest with a token type not defined in {{RFC9578}} MAY be used but
+  MUST always start with a 2-octet token_type.
 
-- "token_requests" are serialized TokenRequests, in network byte order. The
-  number of token_requests, as a 2-octet integer, is prepended to the serialized
-  TokenRequests. In addition, the 2-octet integer length of each TokenRequest is
-  prepended to the serialized TokenRequests.
+- "token_requests" is an array of TokenRequest satisfying the above constraint.
 
 
 The Client then generates an HTTP POST request to send to the Issuer Request
