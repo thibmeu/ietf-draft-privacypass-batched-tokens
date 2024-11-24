@@ -399,8 +399,8 @@ The structure fields are defined as follows:
   with a uint16 "token_type" indicating the token type. The rest of the
   structure follows based on that type, within the inner opaque token_request
   attribute. The above definition corresponds to TokenRequest from {{RFC9578}}.
-  For TokenRequest not defined in {{RFC9578}}, they MAY be used as long as they
-  are prefixed with a 2-octet token_type.
+  A TokenRequest with a token type not defined in {{RFC9578}} MAY be used but
+  MUST always start with a 2-octet token_type.
 
 - "token_requests" is an array of TokenRequest satisfying the above constraint.
 
