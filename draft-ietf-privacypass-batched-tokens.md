@@ -404,14 +404,6 @@ The structure fields are defined as follows:
 
 - "token_requests" is an array of TokenRequest satisfying the above constraint.
 
-Note that when serialiazed in network byte order, BatchTokenRequest:
-
-- is prepended with a 2-octet integer representing the length of its underlying
-  byte array. This is not the number of TokenRequest.
-
-- has each of its TokenRequest serialized in network byte order. Specifically,
-  this implies each TokenRequest is prepended with its length as a 2-octet
-  integer.
 
 The Client then generates an HTTP POST request to send to the Issuer Request
 URL, with the BatchTokenRequest as the content. The media type for this request
