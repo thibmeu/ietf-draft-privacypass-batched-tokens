@@ -395,7 +395,7 @@ struct {
 
 The structure fields are defined as follows:
 
-- TokenRequest's "token_type" is a 2-octet integer. TokenRequest MUST be prefixed
+- TokenRequest's "token_type" is a 2-octet integer. TokenRequest MUST always start
   with a uint16 "token_type" indicating the token type. The rest of the
   structure follows based on that type, within the inner opaque token_request
   attribute. The above definition corresponds to TokenRequest from {{RFC9578}}.
