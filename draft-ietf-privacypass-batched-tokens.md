@@ -518,9 +518,6 @@ The Issuer generates an HTTP response with status code 200 whose content
 consists of TokenResponse, with the content type set as
 "application/private-token-arbitrary-batch-response".
 
-If the Issuer issues some tokens but not all, it MUST return an HTTP 206 to the
-client and continue processing further requests.
-
 ~~~
 HTTP/1.1 200 OK
 Content-Type: application/private-token-arbitrary-batch-response
@@ -529,6 +526,13 @@ Content-Length: <Length of BatchTokenResponse>
 <Bytes containing the BatchTokenResponse>
 ~~~
 
+If the Issuer issues some but not all tokens, it MUST return an HTTP 206 error
+to the client and continue processing subsequent requests.
+For instance, an Issuer MAY return an HTTP 206 error if requests for tokens of
+the same token type refer to more than one `truncated_token_key_id`.
+
+If the Issuer decides not to issue any tokens, it MUST return an HTTP 400 to the
+client.
 
 
 ## Finalization {#arbitrary-finalization}
