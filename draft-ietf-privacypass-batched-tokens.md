@@ -510,7 +510,7 @@ struct {
 
 BatchTokenResponse.token_responses is a variable-size vector of
 OptionalTokenResponses. OptionalTokenResponse.token_response is an
-{{optional-value}} TokenResponse, where an absence of TokenResponse indicates
+optional TokenResponse (as specified in {{optional-value}}) , where an absence of TokenResponse indicates
 that the Issuer failed or refused to issue the associated TokenRequest.
 
 The Issuer generates an HTTP response with status code 200 whose content
