@@ -123,7 +123,7 @@ structure of protocol messages.  In addition to the base syntax, it uses two
 additional features: the ability for fields to be optional and the ability for
 vectors to have variable-size length headers.
 
-## Optional Value
+## Optional Value {#optional-value}
 
 An optional value is encoded with a presence-signaling octet, followed by the
 value itself if present.  When decoding, a presence octet with a value other
@@ -509,10 +509,10 @@ struct {
 } BatchTokenResponse
 ~~~
 
-BatchTokenResponse.token_responses is a vector of OptionalTokenResponses, length
-prefixed with two bytes. OptionalTokenResponse.token_response is a
-length-prefix-encoded TokenResponse, where a length of 0 indicates that the
-Issuer failed or refused to issue the associated TokenRequest.
+BatchTokenResponse.token_responses is a variable-size vector of
+OptionalTokenResponses. OptionalTokenResponse.token_response is an
+optional TokenResponse (as specified in {{optional-value}}) , where an absence of TokenResponse indicates
+that the Issuer failed or refused to issue the associated TokenRequest.
 
 The Issuer generates an HTTP response with status code 200 whose content
 consists of TokenResponse, with the content type set as
