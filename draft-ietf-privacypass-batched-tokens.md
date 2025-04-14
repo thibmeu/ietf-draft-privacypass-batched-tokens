@@ -490,6 +490,7 @@ client. The issuer creates a BatchTokenResponse structured as follows:
 
 ~~~tls
 struct {
+  uint16_t token_type;
   select (token_type) {
     case (0x0001): /* Type VOPRF(P-384, SHA-384), RFC 9578 */
       uint8_t evaluated_msg[Ne];
