@@ -28,6 +28,11 @@ author:
     org: Cloudflare Inc.
     email: ot-ietf@thibault.uk
 
+informative:
+  IANA_PRIVACYPASS_TOKEN_TYPES:
+    title: IANA Privacy Pass Token Types Registry
+    target: https://www.iana.org/assignments/privacy-pass/privacy-pass.xhtml#token-type
+
 --- abstract
 
 This document specifies two variants of the Privacy Pass issuance protocol that
@@ -78,18 +83,18 @@ multiple HTTP requests, these ad-hoc solutions vary based on transport protocol
 support. In addition, in some cases, they cannot take advantage of cryptographic
 optimizations.
 
-The first variant of the issuance protocol builds upon the privately verifiable
-issuance protocol in {{RFC9578}} that uses VOPRF {{!OPRF=RFC9497}}, and allows
-for batched issuance of tokens and amortizes the cost of zero knowledge proofs.
-This allows clients to request more than one token at a time and for issuers to
-issue more than one token at a time. In effect, private batched issuance
-performance scales better than linearly.
+The first variant ({{amortized-batch}}) of the issuance protocol builds upon the
+privately verifiable issuance protocol in {{RFC9578}} that uses VOPRF
+{{!OPRF=RFC9497}}, and allows for batched issuance of tokens and amortizes the
+cost of zero knowledge proofs. This allows clients to request more than one
+token at a time and for issuers to issue more than one token at a time. In
+effect, private batched issuance performance scales better than linearly.
 
-The second variant of the issuance protocol introduces a new Client-Issuer
-communication method, which allows for batched issuance of generic token
-types. This allows clients to request more than one token at a time and for
-issuers to issue more than one token at a time. This variant has no other effect
-than batching requests and responses and the issuance performance remains
+The second variant ({{generic-batch}}) of the issuance protocol introduces a new
+Client-Issuer communication method, which allows for batched issuance of generic
+token types. This allows clients to request more than one token at a time and
+for issuers to issue more than one token at a time. This variant has no other
+effect than batching requests and responses and the issuance performance remains
 linear.
 
 This document registers a new token type ({{iana-token-type}}) that can either
@@ -103,7 +108,7 @@ defined below.
 
 # Motivation
 
-Privacy Pass tokens (as defined in {{RFC9576}} and {{!RFC9578}}) are unlinkable
+Privacy Pass tokens (as defined in {{RFC9576}} and {{RFC9578}}) are unlinkable
 during issuance and redemption. The basic issuance protocols defined in
 {{RFC9578}}, however, only allow for a single token to be issued at a time for
 every challenge. In some cases, especially where a large number of clients need
@@ -428,14 +433,15 @@ verification works exactly as specified in {{RFC9578}}.
 # Generic Token Batch Issuance {#generic-batch}
 
 This section describes an issuance protocol mechanism for issuing multiple
-tokens in one round trip between Client and Issuer. An generic batch token
+tokens in one round trip between Client and Issuer. A generic batch token
 request can contain token requests for any token type.
 
 ## Client-to-Issuer Request {#generic-client-to-issuer-request}
 
 The Client first generates all of the individual TokenRequest structures that
 are intended to be batched together. This request creation follows the protocol
-describing issuance, such as {{RFC9578, Section 5.1}} or {{RFC9578, Section 6.1}}.
+describing issuance, such as {{RFC9578, Section 5.1}} or {{RFC9578,
+Section 6.1}}.
 
 The Client then creates a GenericBatchedTokenRequest structure as follows:
 
@@ -447,7 +453,9 @@ struct {
          TokenRequest token_request;
       case (0x0002): /* Type Blind RSA (2048-bit), RFC 9578 */
           TokenRequest token_request;
-      case (0x0005): /* Type VOPRF(ristretto255, SHA-512), RFC 9578 */
+      case (0x0005): /* Type VOPRF(ristretto255, SHA-512), RFC XXXX */
+          TokenRequest token_request;
+      case (other): /* Other token types from the IANA Privacy Pass Token Types Registry */
           TokenRequest token_request;
    }
 } GenericTokenRequest;
@@ -459,9 +467,10 @@ struct {
 
 The structure fields are defined as follows:
 
-- GenericBatchTokenRequest's "token_type" is a 2-octet integer. The rest of the
-  structure follows with the TokenRequest based on that type. A TokenRequest
-  with a token type not defined in {{RFC9578}} MAY.
+- GenericTokenRequest's "token_type" is a 2-octet integer. The value
+  represents the token type from the IANA Privacy Pass Token Types Registry
+  ({{IANA_PRIVACYPASS_TOKEN_TYPES}}). The rest of the structure follows with the
+  TokenRequest based on that type.
 
 - "token_requests" is an array of GenericTokenRequest satisfying the above
   constraint.
@@ -502,25 +511,30 @@ struct {
   uint16_t token_type;
   select (token_type) {
     case (0x0001): /* Type VOPRF(P-384, SHA-384), RFC 9578 */
-      uint8_t evaluated_msg[Ne];
-      uint8_t evaluated_proof[Ns + Ns];
+      TokenResponse token_response;
     case (0x0002): /* Type Blind RSA (2048-bit), RFC 9578 */
-      uint8_t blind_sig[Nk];
+      TokenResponse token_response;
+    case (0x0005): /* Type VOPRF(ristretto255, SHA-512), RFC XXXX */
+      TokenResponse token_response;
+    case (other): /* Other token types */
+      TokenResponse token_response;
   }
-} TokenResponse;
+} GenericTokenResponse;
 
 struct {
-  optional<TokenResponse> token_response; /* Defined by token_type */
+  optional<GenericTokenResponse> generic_token_response; /* Defined by token_type */
 } OptionalTokenResponse;
 
 struct {
-  OptionalTokenResponse token_responses<V>;
+  OptionalTokenResponse optional_token_responses<V>;
 } GenericBatchTokenResponse
 ~~~
 
-GenericBatchTokenResponse.token_responses is a variable-size vector of
+For each request in GenericBatchTokenRequest.token_requests, the issuer
+generates a TokenResponse according to the token type.
+GenericBatchTokenResponse.optional_token_responses is a variable-size vector of
 OptionalTokenResponses. OptionalTokenResponse.token_response is an optional
-TokenResponse (as specified in {{optional-value}}) , where an absence of
+TokenResponse (as specified in {{optional-value}}), where an absence of
 TokenResponse indicates that the Issuer failed or refused to issue the
 associated TokenRequest.
 
@@ -576,7 +590,7 @@ This section contains IANA codepoint allocation requests.
 
 ## Token Type {#iana-token-type}
 
-This document updates the "Token Type" Registry ({{!AUTHSCHEME=RFC9577}}) with the
+This document updates the "Token Type" Registry ({{Section 6.2 of !AUTHSCHEME=RFC9577}}) with the
 following entry:
 
 * Value: 0x0005 (suggested)
