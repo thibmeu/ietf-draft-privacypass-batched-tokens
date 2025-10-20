@@ -124,7 +124,8 @@ the basic Privately Verifiable Token issuance protocol in the following key ways
 
 Generic Token Batch Issuance {{generic-batch}} allows for a single
 GenericBatchTokenRequest to be sent that encompasses multiple token requests.
-This improves upon the basic issuance protocols defined in {{RFC9578}} in the following key ways:
+This improves upon the basic issuance protocols defined in {{RFC9578}} in the
+following key ways:
 
 1. Issuing multiple tokens at once of the same type with different keys.
 2. Issuing multiple tokens at once of different types.
@@ -215,13 +216,13 @@ The Client then creates a BatchTokenRequest structured as follows:
 
 ~~~tls
 struct {
-    uint8_t blinded_element[Ne];
-} BlindedElement;
+    uint8_t blinded_msg[Ne];
+} BlindedMessage;
 
 struct {
    uint16_t token_type;
    uint8_t truncated_token_key_id;
-   BlindedElement blinded_elements<V>;
+   BlindedMessage blinded_msgs<V>;
 } AmortizedBatchTokenRequest;
 ~~~
 
@@ -232,9 +233,9 @@ The structure fields are defined as follows:
 - "truncated_token_key_id" is the least significant byte of the `token_key_id`
   in network byte order (in other words, the last 8 bits of `token_key_id`).
 
-- "blinded_elements" is a list of `Nr` serialized elements, each of length `Ne`
+- "blinded_msgs" is a list of `Nr` serialized elements, each of length `Ne`
   bytes and computed as `SerializeElement(blinded_element_i)`, where
-  blinded_element_i is the i-th output sequence of `Blind` invocations above. Ne
+  blinded_element_i is the i-th output sequence of `Blind` invocations above. `Ne`
   is as defined in {{OPRF, Section 4}}.
 
 The Client then generates an HTTP POST request to send to the Issuer Request
@@ -261,20 +262,20 @@ described in {{RFC9578, Section 5.2}}.
 Upon receipt of the request, the Issuer validates the following conditions:
 
 - The AmortizedBatchTokenRequest contains a supported token_type of the
-  privatley verifiable token kind.
+  privately verifiable token kind.
 - The AmortizedBatchTokenRequest.truncated_token_key_id corresponds to a key ID
   of a Public Key owned by the issuer.
 - Nr, as determined based on the size of
-  AmortizedBatchTokenRequest.blinded_elements, is less than or equal to the
+  AmortizedBatchTokenRequest.blinded_msgs, is less than or equal to the
   number of tokens that the issuer can issue in a single batch.
 
 If any of these conditions is not met, the Issuer MUST return an HTTP 422
 (Unprocessable Content) error to the client.
 
 The Issuer then tries to deseralize the i-th element of
-AmortizedBatchTokenRequest.blinded_elements using DeserializeElement from
+AmortizedBatchTokenRequest.blinded_msgs using DeserializeElement from
 {{Section 2.1 of OPRF}}, yielding `blinded_element_i` of type `Element`. If this
-fails for any of the AmortizedBatchTokenRequest.blinded_elements values, the
+fails for any of the AmortizedBatchTokenRequest.blinded_msgs values, the
 Issuer MUST return an HTTP 422 (Unprocessable Content) error to the client.
 Otherwise, if the Issuer is willing to produce a token to the Client, the issuer
 forms a list of `Element` values, denoted `blinded_elements`, and computes a
@@ -282,8 +283,9 @@ blinded response as follows:
 
 ~~~
 server_context = SetupVOPRFServer(ciphersuiteID, skI, pkI)
+
 evaluated_elements, proof =
-  server_context.BlindEvaluateBatch(skI, blinded_elements)
+  BlindEvaluateBatch(skI, blinded_elements)
 ~~~
 
 `ciphersuiteID` is the ciphersuite identifier from {{OPRF}} corresponding to the
@@ -296,6 +298,8 @@ The description of `BlindEvaluateBatch` is below.
 ~~~
 Input:
 
+  Scalar skS
+  Element pkS
   Element blindedElements[Nr]
 
 Output:
@@ -306,10 +310,8 @@ Output:
 Parameters:
 
   Group G
-  Scalar skS
-  Element pkS
 
-def BlindEvaluateBatch(blindedElements):
+def BlindEvaluateBatch(skS, blindedElements):
   evaluatedElements = []
   for blindedElement in blindedElements:
     evaluatedElements.append(skS * blindedElement)
@@ -323,20 +325,20 @@ The Issuer then creates a AmortizedBatchTokenResponse structured as follows:
 
 ~~~tls
 struct {
-    uint8_t evaluated_element[Ne];
-} EvaluatedElement;
+    uint8_t evaluated_msg[Ne];
+} EvaluatedMessage;
 
 struct {
-   EvaluatedElement evaluated_elements<V>;
+   EvaluatedMessage evaluated_msgs<V>;
    uint8_t evaluated_proof[Ns + Ns];
 } AmortizedBatchTokenResponse;
 ~~~
 
 The structure fields are defined as follows:
 
-- "evaluated_elements" is a list of `Nr` serialized elements, each of length
-  `Ne` bytes and computed as `SerializeElement(evaluate_element_i)`, where
-  evaluate_element_i is the i-th output of `BlindEvaluate`.
+- "evaluated_msgs" is a list of `Nr` serialized elements, each of length
+  `Ne` bytes and computed as `SerializeElement(evaluated_element_i)`, where
+  evaluated_element_i is the i-th output of `BlindEvaluate`.
 
 - "evaluated_proof" is the (Ns+Ns)-octet serialized proof, which is a pair of
   Scalar values, computed as `concat(SerializeScalar(proof[0]),
@@ -344,7 +346,7 @@ The structure fields are defined as follows:
 
 The Issuer MUST generate an HTTP response with status code 200 whose content
 consists of AmortizedBatchTokenResponse, with the content type set as
-"application/private-token-amorrized-batch-response". Clients MUST ignore the
+"application/private-token-amortized-batch-response". Clients MUST ignore the
 response if the status code is not 200 or if the content type is not
 "application/private-token-amortized-batch-response".
 
@@ -359,8 +361,8 @@ Content-Length: <Length of AmortizedBatchTokenResponse>
 ## Finalization {#finalization}
 
 Upon receipt, the Client handles the response and, if successful, deserializes
-the body values AmortizedBatchTokenResponse.evaluate_response and
-AmortizedBatchTokenResponse.evaluate_proof, yielding `evaluated_elements` and
+the body values AmortizedBatchTokenResponse.evaluated_msgs and
+AmortizedBatchTokenResponse.evaluated_proof, yielding `evaluated_elements` and
 `proof`. If deserialization of either value fails, the Client aborts the
 protocol. Otherwise, the Client processes the response as follows:
 
@@ -381,6 +383,7 @@ Input:
   Scalar blind
   Element evaluatedElements[Nr]
   Element blindedElements[Nr]
+  Element pkS
   Proof proof
 
 Output:
@@ -390,12 +393,11 @@ Output:
 Parameters:
 
   Group G
-  Element pkS
 
 Errors: VerifyError
 
 def FinalizeBatch(input, blind,
-  evaluatedElements, blindedElements, proof):
+  evaluatedElements, blindedElements, pks, proof):
   if VerifyProof(G.Generator(), pkS, blindedElements,
                  evaluatedElements, proof) == false:
     raise VerifyError
@@ -419,13 +421,16 @@ corresponds to `nonce`, the i-th nonce that was sampled in
 
 ~~~
 struct {
-    uint16_t token_type;
+    uint16_t token_type; /* 0x0001 or 0x0005 */
     uint8_t nonce[32];
     uint8_t challenge_digest[32];
     uint8_t token_key_id[32];
     uint8_t authenticator[Nh];
 } Token;
 ~~~
+
+The constant `Nh` is as defined in {{OPRF, Section 4}} and denotes the output
+length of the hash function in bytes used by the token type.
 
 If the FinalizeBatch function fails, the Client aborts the protocol. Token
 verification works exactly as specified in {{RFC9578}}.
