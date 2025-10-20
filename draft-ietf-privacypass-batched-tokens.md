@@ -458,7 +458,7 @@ struct {
          TokenRequest token_request;
       case (0x0002): /* Type Blind RSA (2048-bit), RFC 9578 */
           TokenRequest token_request;
-      case (0x0005): /* Type VOPRF(ristretto255, SHA-512), RFC XXXX */
+      case (0x0005): /* Type VOPRF(ristretto255, SHA-512), this document */
           TokenRequest token_request;
       case (other): /* Other token types from the IANA Privacy Pass Token Types Registry */
           TokenRequest token_request;
@@ -519,7 +519,7 @@ struct {
       TokenResponse token_response;
     case (0x0002): /* Type Blind RSA (2048-bit), RFC 9578 */
       TokenResponse token_response;
-    case (0x0005): /* Type VOPRF(ristretto255, SHA-512), RFC XXXX */
+    case (0x0005): /* Type VOPRF(ristretto255, SHA-512), this document */
       TokenResponse token_response;
     case (other): /* Other token types */
       TokenResponse token_response;
@@ -546,7 +546,7 @@ associated TokenRequest.
 The Issuer MUST generate an HTTP response with status code 200 whose content
 consists of TokenResponse, with the content type set as
 "application/private-token-generic-batch-response". Clients MUST ignore the
-response if the status code is not 200 or if the content type is not
+response if the status code is not 200, 206 or if the content type is not
 "application/private-token-generic-batch-response".
 
 ~~~
@@ -557,13 +557,13 @@ Content-Length: <Length of GenericBatchTokenResponse>
 <Bytes containing the GenericBatchTokenResponse>
 ~~~
 
-If the Issuer issues some but not all tokens, it MUST return an HTTP 206 error
+If the Issuer issues some but not all tokens, it MUST return an HTTP 206 Partial Content response defined in {{Section 15.3.7 of !RFC9110}}
 to the client and continue processing subsequent requests.
 For instance, an Issuer MAY return an HTTP 206 error if requests for tokens of
 the same token type refer to more than one `truncated_token_key_id`.
 
-If the Issuer decides not to issue any tokens, it MUST return an HTTP 400 to the
-client.
+If the Issuer decides not to issue any tokens, it MUST return an HTTP 400 Bad Request
+as defined in {{Section 15.5.1 of RFC9110}} to the client.
 
 
 ## Finalization {#generic-finalization}
@@ -587,7 +587,8 @@ requests per client per key.
 ## Generic Token Batch Issuance
 
 Implementors SHOULD be aware of the inherent linear cost of this token type. An
-Issuer MAY ignore TokenRequest if the number of tokens per request past a limit.
+Issuer MAY ignore `GenericTokenRequest` if the number of tokens per request is
+past a limit.
 
 # IANA considerations
 
