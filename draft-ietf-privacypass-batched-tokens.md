@@ -96,7 +96,8 @@ privately verifiable issuance protocol in {{RFC9578}} that uses VOPRF
 {{!OPRF=RFC9497}}, and allows for batched issuance of tokens and amortizes the
 cost of zero knowledge proofs. This allows clients to request more than one
 token at a time and for issuers to issue more than one token at a time. In
-effect, private batched issuance performance scales better than linearly.
+effect, amortizing private batched issuance reduces the per-token cost,
+approaching a factor of 2 for large batches.
 
 The second variant ({{generic-batch}}) of the issuance protocol introduces a new
 Client-Issuer communication method, which allows for batched issuance of generic
@@ -328,6 +329,11 @@ def BlindEvaluateBatch(skS, blindedElements):
                         blindedElements, evaluatedElements)
   return evaluatedElements, proof
 ~~~
+
+The computational complexity of BlindEvaluateBatch is linear in the number of
+evaluations `Nr`. However the amortization of proof generation across all `Nr`
+evaluations reduces the practical cost by approximately half that of `Nr`
+individual token issuance operations as `Nr` increases.
 
 The Issuer then creates a AmortizedBatchTokenResponse structured as follows:
 
