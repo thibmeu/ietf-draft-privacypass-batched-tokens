@@ -477,11 +477,11 @@ The Client then creates a GenericBatchedTokenRequest structure as follows:
 struct {
     uint16_t token_type;
     select (token_type) {
-        case (0x0001): /* Type VOPRF(P-384, SHA-384), RFC 9578 */
+        case (0x0001): /* VOPRF(P-384, SHA-384), RFC 9578 */
             TokenRequest token_request;
-        case (0x0002): /* Type Blind RSA (2048-bit), RFC 9578 */
+        case (0x0002): /* Blind RSA (2048-bit), RFC 9578 */
             TokenRequest token_request;
-        case (0x0005): /* Type VOPRF(ristretto255, SHA-512), this document */
+        case (0x0005): /* VOPRF(ristretto255, SHA-512), RFC XXXX */
             TokenRequest token_request;
         case (other): /* Other registered token types */
             TokenRequest token_request;
@@ -538,11 +538,11 @@ the client. The issuer creates a GenericBatchTokenResponse structured as follows
 struct {
     uint16_t token_type;
     select (token_type) {
-        case (0x0001): /* Type VOPRF(P-384, SHA-384), RFC 9578 */
+        case (0x0001): /* VOPRF(P-384, SHA-384), RFC 9578 */
             TokenResponse token_response;
-        case (0x0002): /* Type Blind RSA (2048-bit), RFC 9578 */
+        case (0x0002): /* Blind RSA (2048-bit), RFC 9578 */
             TokenResponse token_response;
-        case (0x0005): /* Type VOPRF(ristretto255, SHA-512), this document */
+        case (0x0005): /* VOPRF(ristretto255, SHA-512), RFC XXXX */
             TokenResponse token_response;
         case (other): /* Other token types */
             TokenResponse token_response;
@@ -614,11 +614,21 @@ Implementors SHOULD be aware of the inherent linear cost of this token type. An
 Issuer MAY ignore `GenericTokenRequest` if the number of tokens per request is
 past a limit.
 
+Generic Token Batch Issuance does not change the security properties of the
+batched token types. Each token inherits the security considerations of its
+token type, for instance {{Section 7 of RFC9578}} for Blind RSA (2048-bit).
+Migrating away from a token type, such as one that is no longer considered
+secure, is done by registering and deploying a new token type, which can then be
+batched without changes to this document.
+
 # IANA considerations
 
 This section contains IANA codepoint allocation requests.
 
 ## Token Type {#iana-token-type}
+
+RFC EDITOR: please replace "RFC XXXX" with the RFC number of this document,
+and 0x0005 with the value assigned by IANA, throughout this document.
 
 This document updates the "Token Type" Registry ({{Section 6.2 of !AUTHSCHEME=RFC9577}}) with the
 following entry:
@@ -637,6 +647,9 @@ following entry:
 * Change controller: IETF
 * Reference: {{RFC9578, Section 5}}
 * Notes: None
+
+The VOPRF (ristretto255, SHA-512) ciphersuite is defined in {{Section 4.1 of
+OPRF}}, and uses the ristretto255 group defined in {{!RISTRETTO=RFC9496}}.
 
 ## Media Types
 
