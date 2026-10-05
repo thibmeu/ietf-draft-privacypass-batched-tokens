@@ -649,7 +649,7 @@ following entry:
 * Notes: None
 
 The VOPRF (ristretto255, SHA-512) ciphersuite is defined in {{Section 4.1 of
-OPRF}}, and uses the ristretto255 group defined in {{!RISTRETTO=RFC9496}}.
+OPRF}} and uses the ristretto255 group defined in {{!RISTRETTO=RFC9496}}.
 
 ## Media Types
 
