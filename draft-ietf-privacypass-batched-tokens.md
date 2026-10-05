@@ -617,9 +617,6 @@ past a limit.
 Generic Token Batch Issuance does not change the security properties of the
 batched token types. Each token inherits the security considerations of its
 token type, for instance {{Section 7 of RFC9578}} for type `0x0002` tokens (Blind RSA, 2048-bit).
-Migrating away from a token type, such as one that is no longer considered
-secure, is done by registering and deploying a new token type, which can then be
-batched without changes to this document.
 
 # IANA considerations
 
