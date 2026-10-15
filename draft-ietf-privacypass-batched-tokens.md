@@ -150,7 +150,7 @@ following key ways:
 
 # Presentation Language
 
-This document uses the TLS presentation language {{!RFC8446}} to describe the
+This document uses the TLS presentation language {{!RFC9846}} to describe the
 structure of protocol messages.  In addition to the base syntax, it uses two
 additional features: the ability for fields to be optional and the ability for
 vectors to have variable-size length headers.
@@ -477,13 +477,13 @@ The Client then creates a GenericBatchedTokenRequest structure as follows:
 struct {
     uint16_t token_type;
     select (token_type) {
-        case (0x0001): /* Type VOPRF(P-384, SHA-384), RFC 9578 */
+        case (0x0001): /* VOPRF(P-384, SHA-384), RFC 9578 */
             TokenRequest token_request;
-        case (0x0002): /* Type Blind RSA (2048-bit), RFC 9578 */
+        case (0x0002): /* Blind RSA (2048-bit), RFC 9578 */
             TokenRequest token_request;
-        case (0x0005): /* Type VOPRF(ristretto255, SHA-512), this document */
+        case (0x0005): /* VOPRF(ristretto255, SHA-512), RFC XXXX */
             TokenRequest token_request;
-        case (other): /* Other token types from the IANA Privacy Pass Token Types Registry */
+        case (other): /* Other registered token types */
             TokenRequest token_request;
     }
 } GenericTokenRequest;
@@ -538,11 +538,11 @@ the client. The issuer creates a GenericBatchTokenResponse structured as follows
 struct {
     uint16_t token_type;
     select (token_type) {
-        case (0x0001): /* Type VOPRF(P-384, SHA-384), RFC 9578 */
+        case (0x0001): /* VOPRF(P-384, SHA-384), RFC 9578 */
             TokenResponse token_response;
-        case (0x0002): /* Type Blind RSA (2048-bit), RFC 9578 */
+        case (0x0002): /* Blind RSA (2048-bit), RFC 9578 */
             TokenResponse token_response;
-        case (0x0005): /* Type VOPRF(ristretto255, SHA-512), this document */
+        case (0x0005): /* VOPRF(ristretto255, SHA-512), RFC XXXX */
             TokenResponse token_response;
         case (other): /* Other token types */
             TokenResponse token_response;
@@ -550,7 +550,8 @@ struct {
 } GenericTokenResponse;
 
 struct {
-    optional<GenericTokenResponse> generic_token_response; /* Defined by token_type */
+    /* The response format is defined by token_type. */
+    optional<GenericTokenResponse> generic_token_response;
 } OptionalTokenResponse;
 
 struct {
@@ -613,11 +614,18 @@ Implementors SHOULD be aware of the inherent linear cost of this token type. An
 Issuer MAY ignore `GenericTokenRequest` if the number of tokens per request is
 past a limit.
 
+Generic Token Batch Issuance does not change the security properties of the
+batched token types. Each token inherits the security considerations of its
+token type, for instance {{Section 7 of RFC9578}} for type `0x0002` tokens (Blind RSA, 2048-bit).
+
 # IANA considerations
 
 This section contains IANA codepoint allocation requests.
 
 ## Token Type {#iana-token-type}
+
+RFC EDITOR: please replace "RFC XXXX" with the RFC number of this document,
+and 0x0005 with the value assigned by IANA, throughout this document.
 
 This document updates the "Token Type" Registry ({{Section 6.2 of !AUTHSCHEME=RFC9577}}) with the
 following entry:
@@ -636,6 +644,9 @@ following entry:
 * Change controller: IETF
 * Reference: {{RFC9578, Section 5}}
 * Notes: None
+
+The VOPRF (ristretto255, SHA-512) ciphersuite is defined in {{Section 4.1 of
+OPRF}} and uses the ristretto255 group defined in {{!RISTRETTO=RFC9496}}.
 
 ## Media Types
 
