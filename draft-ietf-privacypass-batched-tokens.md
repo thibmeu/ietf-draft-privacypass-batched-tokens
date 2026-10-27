@@ -343,7 +343,7 @@ def BlindEvaluateBatch(skS, pkS, blindedElements):
 ~~~
 
 The computational complexity of BlindEvaluateBatch is linear in the number of
-evaluations `Nr`. However the amortization of proof generation across all `Nr`
+evaluations `Nr`. However, the amortization of proof generation across all `Nr`
 evaluations reduces the practical cost by approximately half that of `Nr`
 individual token issuance operations as `Nr` increases.
 
