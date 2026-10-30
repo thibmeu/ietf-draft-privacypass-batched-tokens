@@ -25,7 +25,7 @@ author:
  -
     ins: T. Meunier
     name: Thibault Meunier
-    org: Cloudflare Inc.
+    org: Cloudflare
     email: ot-ietf@thibault.uk
 
 informative:
@@ -88,11 +88,13 @@ draft-01
 # Introduction
 
 This document specifies two variants of Privacy Pass issuance protocols (as
-defined in {{!RFC9576}}) that allow for batched issuance of tokens. This allows
+defined in {{?RFC9576}}) that allow for batched issuance of tokens. This allows
 clients to request more than one token at a time and for issuers to issue more
-than one token at a time.
+than one token at a time. Clients obtain the Issuer Request URL and keys as
+described in {{Section 4 of !RFC9578}}. The request media type identifies the
+variant.
 
-The base Privacy Pass issuance protocol {{!RFC9578}} defines stateless anonymous
+The base Privacy Pass issuance protocol {{RFC9578}} defines stateless anonymous
 tokens, which can either be publicly verifiable or not. While it is possible to
 run multiple instances of the issuance protocol in parallel, e.g., over a
 multiplexed transport such as HTTP/3 {{?HTTP3=RFC9114}} or by orchestrating
@@ -179,9 +181,9 @@ specifying the minimum and maximum lengths of the encoded sequence of elements.
 
 In this document, there are several vectors whose sizes vary over significant
 ranges.  So instead of using a fixed-size length field, it uses a variable-size
-length using a variable-length integer encoding based on the one described in
-{{Section 16 of ?RFC9000}}. They differ only in that the one here requires a
-minimum-size encoding. Instead of presenting min and max values, the vector
+length using the variable-length integer encoding described in
+{{Section 16 of !RFC9000}}. Receivers MUST accept any valid encoding, including
+non-minimal encodings. Instead of presenting min and max values, the vector
 description simply includes a `V`. For example:
 
 ~~~ tls-presentation
@@ -225,7 +227,8 @@ token_input = concat(token_type, nonce_i, challenge_digest,
 blind_i, blinded_element_i = client_context.Blind(token_input)
 ~~~
 
-`token_type` corresponds to the 2-octet integer in the challenge.
+`token_type` is the 2-octet token type in the TokenChallenge
+({{Section 2.1 of !AUTHSCHEME=RFC9577}}).
 
 The above is repeated for each token to be requested. Importantly, a fresh nonce
 MUST be sampled each time.
@@ -259,7 +262,7 @@ The structure fields are defined as follows:
 The Client then generates an HTTP POST request to send to the Issuer Request
 URL, with the AmortizedBatchTokenRequest as the content. The media type for this
 request MUST be "application/private-token-amortized-batch-request". If not, the
-Issuer responds with status code 415. An example request for the Issuer Request
+Issuer returns status code 415. An example request for the Issuer Request
 URL "https://issuer.example.net/request" is shown below.
 
 ~~~
@@ -287,14 +290,14 @@ Upon receipt of the request, the Issuer validates the following conditions:
   AmortizedBatchTokenRequest.blinded_msgs, is less than or equal to the
   number of tokens that the issuer can issue in a single batch.
 
-If any of these conditions is not met, the Issuer MUST return an HTTP 422
-(Unprocessable Content) error to the client.
+If any of these conditions is not met, the Issuer returns an HTTP 400
+(Bad Request) error to the client.
 
 The Issuer then tries to deseralize the i-th element of
 AmortizedBatchTokenRequest.blinded_msgs using DeserializeElement from
 {{Section 2.1 of OPRF}}, yielding `blinded_element_i` of type `Element`. If this
 fails for any of the AmortizedBatchTokenRequest.blinded_msgs values, the
-Issuer MUST return an HTTP 422 (Unprocessable Content) error to the client.
+Issuer returns an HTTP 400 (Bad Request) error to the client.
 Otherwise, if the Issuer is willing to produce a token to the Client, the issuer
 forms a list of `Element` values, denoted `blinded_elements`, and computes a
 blinded response as follows:
@@ -340,7 +343,7 @@ def BlindEvaluateBatch(skS, pkS, blindedElements):
 ~~~
 
 The computational complexity of BlindEvaluateBatch is linear in the number of
-evaluations `Nr`. However the amortization of proof generation across all `Nr`
+evaluations `Nr`. However, the amortization of proof generation across all `Nr`
 evaluations reduces the practical cost by approximately half that of `Nr`
 individual token issuance operations as `Nr` increases.
 
@@ -367,10 +370,10 @@ The structure fields are defined as follows:
   Scalar values, computed as `concat(SerializeScalar(proof[0]),
   SerializeScalar(proof[1]))`, where Ns is as defined in {{OPRF, Section 4}}.
 
-The Issuer MUST generate an HTTP response with status code 200 whose content
-consists of AmortizedBatchTokenResponse, with the content type set as
+The Issuer returns a successful HTTP response (e.g., 200) containing an
+AmortizedBatchTokenResponse, with the content type set as
 "application/private-token-amortized-batch-response". Clients MUST ignore the
-response if the status code is not 200 or if the content type is not
+content unless the status code is 2xx and the content type is
 "application/private-token-amortized-batch-response".
 
 ~~~
@@ -500,13 +503,13 @@ The structure fields are defined as follows:
   ({{IANA_PRIVACYPASS_TOKEN_TYPES}}). The rest of the structure follows with the
   TokenRequest based on that type.
 
-- "token_requests" is an array of GenericTokenRequest satisfying the above
-  constraint.
+- "generic_token_requests" is an array of GenericTokenRequest satisfying the
+  above constraint.
 
 The Client then generates an HTTP POST request to send to the Issuer Request
 URL, with the GenericBatchTokenRequest as the content. The media type for this
 request MUST be "application/private-token-generic-batch-request". If not, the
-Issuer responds with status code 415. An example request for the Issuer Request
+Issuer returns status code 415. An example request for the Issuer Request
 URL "https://issuer.example.net/request" is shown below.
 
 ~~~
@@ -521,18 +524,10 @@ Content-Length: <Length of GenericBatchTokenRequest>
 
 ## Issuer-to-Client Response {#generic-issuer-to-client-response}
 
-Upon receipt of the request, the Issuer validates the following conditions:
-
-- The Content-Type is application/private-token-generic-batch-request as
-  registered with IANA.
-
-If this condition is not met, the Issuer MUST return an HTTP 422 (Unprocessable
-Content) error to the client.
-
 The Issuer then tries to deserialize the first 2 bytes of the i-th element of
-GenericBatchTokenRequest.token_requests. If this is not a token type registered
-with IANA, the Issuer MUST return an HTTP 422 (Unprocessable Content) error to
-the client. The issuer creates a GenericBatchTokenResponse structured as follows:
+GenericBatchTokenRequest.generic_token_requests. If this is not a token type
+registered with IANA, the Issuer returns an HTTP 400 (Bad Request) error to the
+client. The issuer creates a GenericBatchTokenResponse structured as follows:
 
 ~~~tls
 struct {
@@ -559,18 +554,18 @@ struct {
 } GenericBatchTokenResponse
 ~~~
 
-For each request in GenericBatchTokenRequest.token_requests, the issuer
-generates a TokenResponse according to the token type.
+For each request in GenericBatchTokenRequest.generic_token_requests, the
+issuer generates a TokenResponse according to the token type.
 GenericBatchTokenResponse.optional_token_responses is a variable-size vector of
 OptionalTokenResponses. OptionalTokenResponse.token_response is an optional
 TokenResponse (as specified in {{optional-value}}), where an absence of
 TokenResponse indicates that the Issuer failed or refused to issue the
 associated TokenRequest.
 
-The Issuer MUST generate an HTTP response with status code 200 whose content
-consists of TokenResponse, with the content type set as
+The Issuer returns a successful HTTP response (e.g., 200) containing a
+GenericBatchTokenResponse, with the content type set as
 "application/private-token-generic-batch-response". Clients MUST ignore the
-response if the status code is not 200, 206 or if the content type is not
+content unless the status code is 2xx and the content type is
 "application/private-token-generic-batch-response".
 
 ~~~
@@ -581,23 +576,21 @@ Content-Length: <Length of GenericBatchTokenResponse>
 <Bytes containing the GenericBatchTokenResponse>
 ~~~
 
-If the Issuer issues some but not all tokens, it MUST return an HTTP 206 Partial Content response defined in {{Section 15.3.7 of !RFC9110}}
-to the client and continue processing subsequent requests.
-For instance, an Issuer MAY return an HTTP 206 error if requests for tokens of
-the same token type refer to more than one `truncated_token_key_id`.
+If the Issuer issues some but not all tokens, it returns a successful response
+in which the unissued tokens are absent. For instance, an Issuer can refuse
+requests for tokens of the same token type that refer to more than one
+`truncated_token_key_id`.
 
-If the Issuer decides not to issue any tokens, it MUST return an HTTP 400 Bad Request
-as defined in {{Section 15.5.1 of RFC9110}} to the client.
-
+If the Issuer decides not to issue any tokens, it returns an HTTP 400 (Bad
+Request) error to the client.
 
 ## Finalization {#generic-finalization}
 
-The Client tries to deserialize the i-th element of
-GenericBatchTokenResponse.token_responses using the protocol associated to
-GenericBatchTokenRequest.token_type. If the element has a size of 0, the Client MUST
-ignore this token, and continue processing the next token. The Client finalizes
-each deserialized TokenResponse using the matching TokenRequest according to the
-corresponding finalization procedure defined by the token type.
+The Client processes each element of
+GenericBatchTokenResponse.optional_token_responses in request order. If the
+response is absent, the Client MUST skip it and continue with the next element.
+Otherwise, the Client deserializes and finalizes the TokenResponse using the
+matching TokenRequest and the procedure defined by the token type.
 
 # Security considerations {#security-considerations}
 
@@ -607,6 +600,9 @@ Implementors SHOULD be aware of the security considerations described in {{OPRF,
 Section 6.2.3}} and implement mitigation mechanisms. Application can mitigate
 this issue by limiting the number of clients and limiting the number of token
 requests per client per key.
+
+An Issuer can use the same key for single-token and batched issuance. These
+limits then apply to both.
 
 ## Generic Token Batch Issuance
 
